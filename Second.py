@@ -24,22 +24,28 @@ def db(db_filename, json_dict):
         for net in next_hop:
             c.execute('''INSERT INTO Next_hop(next_hop) VALUES(?)''', (net,))
         database.commit()
-        c.execute("CREATE TABLE Destination(next_hop text,Prf text, Metric text, Age integer, Interface text)")
+        c.execute("CREATE TABLE Destination(destination text,Prf text, Metric text, Next_hop text, Interface text, "
+                  "Age integer)")
         destination_data = []
         for hop in json_dict['route_table']['next hop']:
             # add next hops
             for key in json_dict['route_table']['next hop'][hop]:
-                destination_data.append((hop, json_dict['route_table']['next hop'][hop][key]))
+                destination_data.append((key, hop, json_dict['route_table']['next hop'][hop][key]))
         for state in destination_data:
-            c.execute('''INSERT INTO Destination(next_hop,Prf,Metric,Age,Interface) VALUES(?,?,?,?,?)''',
-                      (state[0], state[1]['preference'], state[1]['metric'], state[1]['age'], state[1]['via']))
+            c.execute('''INSERT INTO Destination(destination,Prf,Metric,Next_hop,Interface,Age) VALUES(?,?,?,?,?,?)''',
+                      (state[0], state[2]['preference'], state[2]['metric'], state[1], state[2]['via'], state[2]['age']))
         database.commit()
 
-
-
-
-
-
+        print("Destination        | Prf | Metric | Next hop        | Interface     | Age")
+        print('----------------------------------------------------------------------------------------------')
+        repeated_des = None
+        for state in c.execute("SELECT * FROM Destination ORDER BY destination"):
+            list_state = list(state)
+            if list_state[0] == repeated_des:
+                list_state[0] = ''
+            print("{:<18} | {:<7} | {:<7} | {:<16} | {:<16} | {:<20}".format(*list_state))
+            print('----------------------------------------------------------------------------------------------')
+            repeated_des = list_state[0]
 
         database.close()
         print('Done')
